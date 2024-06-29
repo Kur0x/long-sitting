@@ -62,6 +62,9 @@ def is_within_active_hours(current_time):
     # 检测是否为工作日的有效工作时间
     hour = current_time[3]
     minute = current_time[4]
+    weekday = current_time[6]
+    if weekday >= 5:
+        return False
     # 早上9点到晚上5点半，中午12到2点不记录
     if hour < 9 or hour > 17 or (hour == 17 and minute > 30):
         return False
