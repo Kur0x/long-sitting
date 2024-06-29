@@ -222,53 +222,6 @@ def web_page():
         print(f"Error generating web page: {e}")
         return f"<html><body><h1>Error in generating data</h1><p>{e}<p></body></html>"
     
-def web_page1():
-    try:
-        # 获取当前日期
-        current_date = utime.localtime()[:3]  # (year, month, day)
-        with open('data_log.json', 'r') as f:
-            data = json.load(f)
-        total_sitting, total_standing = 0, 0
-        events_html = ""
-        # 遍历日志数据，只添加今日的事件
-        for event in data['events']:
-            start_time = utime.localtime(event['start'])
-            if start_time[:3] == current_date:  # 仅处理当天的事件
-                end_time = utime.localtime(event['end'])
-                duration = event['end'] - event['start']
-                if event['type'] == 'sitting':
-                    total_sitting += duration
-                else:
-                    total_standing += duration
-                stime = format_datetime(start_time)
-                etime = format_datetime(end_time)
-                events_html += f"<tr><td>{event['type']}</td><td>{stime}</td><td>{etime}</td><td>{int(duration / 6)/10}min</td></tr>"
-
-        # 获取并格式化当前时间
-        current_time = utime.localtime()
-        formatted_current_time = format_datetime(current_time)
-        status = "Sitting" if sitting else "Standing"
-        html = f"""<html><head><title>ESP32 Sit Stand Alert</title>
-                   <style>
-                       table, th, td {{border: 1px solid black; border-collapse: collapse;}}
-                       th, td {{padding: 8px; text-align: left;}}
-                   </style>
-                   </head>
-                   <body>
-                   <h1>Status: {status}</h1>
-                   <p>Current Time: {formatted_current_time}</p>
-                   <p>Total Sitting Time Today: {int(total_sitting / 3600)} hours, {int(total_sitting % 3600 / 60)} minutes</p>
-                   <p>Total Standing Time Today: {int(total_standing / 3600)} hours, {int(total_standing % 3600 / 60)} minutes</p>
-                   <table>
-                       <tr><th>Type</th><th>Start Time</th><th>End Time</th><th>Duration</th></tr>
-                       {events_html}
-                   </table>
-                   </body></html>"""
-        return html
-    except Exception as e:
-        print(f"Error generating web page: {e}")
-        return "<html><body><h1>Error in generating data</h1></body></html>"
-
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(('', 80))
 s.listen(5)
