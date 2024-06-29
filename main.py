@@ -8,9 +8,7 @@ import json
 # LED初始化
 led = Pin(8, Pin.OUT)
 np = EnhancedNeoPixel(8)
-np.stop_blinking()
-np.stop_blinking()
-np.stop_blinking()
+
 
 # 时间同步设置
 def set_time():
