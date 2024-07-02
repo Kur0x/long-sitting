@@ -87,7 +87,7 @@ def update_log(sitting):
     timestamp = utime.time()  # 记录当前Unix时间戳
 
     event_type = 'sitting' if sitting else 'standing'
- 
+
     if data_log['events'][-1]['type'] != event_type or is_start_time: # new event
         data_log['events'].append({'type': event_type, 'start': timestamp, 'end': timestamp})
         is_start_time = False
@@ -106,14 +106,14 @@ start_time = 0
 def set_sitting_alert_color(sitting_time):
     if sitting_time > 40:  # 40分钟
         np.start_blinking('red', 1, brightness=1)
-    if sitting_time > 30: 
+    elif sitting_time > 30: 
         np.set_color("red", brightness=0.8)
-    if sitting_time > 20: 
+    elif sitting_time > 20: 
         np.set_color("blue", brightness=0.5)
-    if sitting_time > 15: 
+    elif sitting_time > 15: 
         np.set_color("cyan", brightness=0.5)
-    if sitting_time > 10: 
-        np.set_color("green", brightness=sitting_time/10.)
+    else: 
+        np.set_color("green", brightness=sitting_time/15.)
 
 def check_sitting(_):
     global start_time, sitting
