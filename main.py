@@ -55,8 +55,9 @@ connect_wifi('KuroGalaxy', '05722067')
 i2c = I2C(0, scl=Pin(3), sda=Pin(4))
 sensor = VL53L0X(i2c)
 
+is_start_time = True # every time boot or start working
 def is_within_active_hours(current_time):
-    # return True
+    global is_start_time
     # 检测是否为工作日的有效工作时间
     hour = current_time[3]
     minute = current_time[4]
@@ -65,10 +66,12 @@ def is_within_active_hours(current_time):
         return False
     # 早上9点到晚上5点半，中午12到2点不记录
     if hour < 9 or hour > 17 or (hour == 17 and minute > 30):
+        is_start_time = True
         return False
     # if hour == 11 and minute >= 30:
     #     return True
     if 12 <= hour < 14:
+        is_start_time = True
         return False
     return True
 
@@ -82,18 +85,16 @@ except Exception as e:
 
 def update_log(sitting):
     timestamp = utime.time()  # 记录当前Unix时间戳
-    if not is_within_active_hours(utime.localtime(timestamp)):
-        if data_log['events'] and data_log['events'][-1]['start'] == data_log['events'][-1]['end']:
-            data_log['events'][-1]['end'] = timestamp
-        return
-    else:
-        event_type = 'sitting' if sitting else 'standing'
-        if data_log['events']:
-            # 如果有正在进行的事件，更新结束时间
-            data_log['events'][-1]['end'] = timestamp
-        # 始终添加新事件
+
+    event_type = 'sitting' if sitting else 'standing'
+ 
+    if data_log['events'][-1]['type'] != event_type or is_start_time: # new event
         data_log['events'].append({'type': event_type, 'start': timestamp, 'end': timestamp})
-        print(f"Logged {event_type} event from {timestamp}")
+        is_start_time = False
+        print(f"Logged new {event_type} event from {timestamp}")
+    if data_log['events']:
+        # 如果有正在进行的事件，更新结束时间
+        data_log['events'][-1]['end'] = timestamp
     # 持久化数据存储
     with open('data_log.json', 'w') as f:
         json.dump(data_log, f)
@@ -101,11 +102,22 @@ def update_log(sitting):
 # 定时器和状态检查
 sitting = False
 start_time = 0
-recording = True
+
+def set_sitting_alert_color(sitting_time):
+    if sitting_time > 40:  # 40分钟
+        np.start_blinking('red', 1, brightness=1)
+    if sitting_time > 30: 
+        np.set_color("red", brightness=0.8)
+    if sitting_time > 20: 
+        np.set_color("blue", brightness=0.5)
+    if sitting_time > 15: 
+        np.set_color("cyan", brightness=0.5)
+    if sitting_time > 10: 
+        np.set_color("green", brightness=sitting_time/10.)
 
 def check_sitting(_):
-    global start_time, sitting, recording
-    if not recording:
+    global start_time, sitting
+    if not is_within_active_hours(utime.localtime(utime.time())):
         return
     distance = sensor.read()
     print(f'Current distance: {distance} mm')
@@ -114,24 +126,22 @@ def check_sitting(_):
             sitting = False
             start_time = 0
             np.stop_blinking()
-            update_log(sitting)
+            np.clear()
             print(f"Transition to standing at {utime.time()}")
     else:
-        if not sitting:
+        if not sitting: # start sitting
             sitting = True
             start_time = utime.ticks_ms()
-            update_log(sitting)
             print(f"Transition to sitting at {utime.time()}")
-        elif utime.ticks_diff(utime.ticks_ms(), start_time) > 2400000:  # 40分钟
-            print("Sitting alert triggered!")
-            # add led alert
-            np.start_blinking('red', 1, brightness=1)
-        else:
-            np.set_color("red", brightness=utime.ticks_diff(utime.ticks_ms(), start_time)/2400000.)
+
+        sitting_time = utime.ticks_diff(utime.ticks_ms(), start_time) / 1000 / 60 # minutes
+        set_sitting_alert_color(sitting_time)
+    update_log(sitting)
+    
 
 
 timer = Timer(2)
-timer.init(period=1000, mode=Timer.PERIODIC, callback=check_sitting)
+timer.init(period=2000, mode=Timer.PERIODIC, callback=check_sitting)
 
 # 网页显示
 def format_datetime(t):
