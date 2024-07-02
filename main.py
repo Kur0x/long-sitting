@@ -88,13 +88,12 @@ def update_log(sitting):
 
     event_type = 'sitting' if sitting else 'standing'
 
-    if data_log['events'][-1]['type'] != event_type or is_start_time: # new event
+    if is_start_time or data_log['events'][-1]['type'] != event_type: # new event
         data_log['events'].append({'type': event_type, 'start': timestamp, 'end': timestamp})
         is_start_time = False
         print(f"Logged new {event_type} event from {timestamp}")
-    if data_log['events']:
-        # 如果有正在进行的事件，更新结束时间
-        data_log['events'][-1]['end'] = timestamp
+    # 更新正在进行的事件结束时间
+    data_log['events'][-1]['end'] = timestamp
     # 持久化数据存储
     with open('data_log.json', 'w') as f:
         json.dump(data_log, f)
@@ -121,19 +120,17 @@ def check_sitting(_):
         return
     distance = sensor.read()
     print(f'Current distance: {distance} mm')
-    if distance > 200:
-        if sitting:
-            sitting = False
-            start_time = 0
-            np.stop_blinking()
-            np.clear()
-            print(f"Transition to standing at {utime.time()}")
-    else:
-        if not sitting: # start sitting
-            sitting = True
-            start_time = utime.ticks_ms()
-            print(f"Transition to sitting at {utime.time()}")
-
+    if distance > 200 and sitting:
+        sitting = False
+        start_time = 0
+        np.stop_blinking()
+        np.clear()
+        print(f"Transition to standing at {utime.time()}")
+    elif distance < 200 and not sitting: # start sitting
+        sitting = True
+        start_time = utime.ticks_ms()
+        print(f"Transition to sitting at {utime.time()}")
+    elif distance < 200 and sitting:
         sitting_time = utime.ticks_diff(utime.ticks_ms(), start_time) / 1000 / 60 # minutes
         set_sitting_alert_color(sitting_time)
     update_log(sitting)
