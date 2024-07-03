@@ -84,6 +84,7 @@ except Exception as e:
     print(f"Error loading data: {e}")
 
 def update_log(sitting):
+    global is_start_time
     timestamp = utime.time()  # 记录当前Unix时间戳
 
     event_type = 'sitting' if sitting else 'standing'
